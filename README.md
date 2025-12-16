@@ -1,25 +1,33 @@
 # Differential Drive Waypoint Navigation
 
-Autonomous waypoint tracking system for differential drive robots using **Pure Pursuit** path following with **PID velocity control** and **inverse kinematics**, implemented in MATLAB & Simulink.
+Autonomous waypoint tracking system for differential drive robots using **Pure Pursuit** path following with **PID velocity control** and **inverse kinematics**, implemented in MATLAB/Simulink.
 
 ![Robot Trajectory](images/trajectory.png)
 
 ## Control Architecture
 
 ```
-┌─────────────┐    ┌──────────────┐    ┌─────────┐    ┌───────────────────┐    ┌─────────────────────┐
-│  Waypoints  │───▶│ Pure Pursuit │───▶│   PID   │───▶│ Inverse Kinematics│───▶│ Differential Drive  │
+                                        Velocity Feedback [v, ω]
+                                    ┌───────────────────────────────────────┐
+                                    │                                       │
+┌─────────────┐    ┌──────────────┐ │  ┌─────────┐    ┌───────────────────┐ │  ┌─────────────────────┐
+│  Waypoints  │───▶│ Pure Pursuit │─┴─▶│   PID   │───▶│ Inverse Kinematics│─┴─▶│ Differential Drive  │
 │   [x, y]    │    │  Controller  │    │ Control │    │   (v,ω) → (vl,vr) │    │   Forward Model     │
 └─────────────┘    └──────────────┘    └─────────┘    └───────────────────┘    └─────────────────────┘
-                          │                                                              │
+                          ▲                                                              │
                           │                    Pose Feedback [x, y, θ]                   │
                           └──────────────────────────────────────────────────────────────┘
 ```
 
+**Dual Feedback Loops:**
+1. **Outer Loop (Pose)**: Pure Pursuit receives [x, y, θ] to compute desired velocities
+2. **Inner Loop (Velocity)**: PID controllers receive [v, ω] error for velocity tracking
+
 ## Features
 
 - **Pure Pursuit Algorithm**: Geometric path tracking that computes linear and angular velocities to follow waypoints smoothly
-- **Dual PID Controllers**: Separate discrete PID(z) controllers for linear and angular velocity refinement
+- **Dual PID Controllers**: Separate discrete PID(z) controllers for linear and angular velocity tracking
+- **Velocity Feedback (Transformation)**: Computes actual [v, ω] from wheel speeds for closed-loop PID control
 - **Inverse Kinematics**: Converts body velocities (v, ω) to individual wheel speeds (vl, vr)
 - **Differential Drive Model**: Forward kinematics simulation with pose integration
 - **Goal Detection**: Euclidean distance-based waypoint arrival detection (threshold: 0.25m)
@@ -31,10 +39,11 @@ Autonomous waypoint tracking system for differential drive robots using **Pure P
 | Subsystem | Function |
 |-----------|----------|
 | **Pure Pursuit** | Computes desired linear/angular velocities based on current pose and waypoints |
-| **PID(z) Controllers** | Discrete-time velocity tracking with error feedback |
+| **PID(z) Controllers** | Discrete-time velocity tracking with error feedback from Transformation block |
 | **Zero-Velocity At Goal** | Multiplexer that zeros output when `atGoal` flag is true |
 | **Inverse Kinematics** | `vl = v - (L/2)ω`, `vr = v + (L/2)ω` |
-| **Differential Drive System** | Forward kinematics: `v = (vl+vr)/2`, `ω = (vr-vl)/L`, pose integration |
+| **Transformation** | Velocity feedback: `v = (vl+vr)/2`, `ω = (vr-vl)/L` |
+| **Differential Drive System** | Forward kinematics with pose integration: x, y, θ |
 | **Check Distance To Goal** | `√((x-xg)² + (y-yg)²) > threshold` |
 
 ## Robot Parameters
@@ -173,4 +182,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-*Built with MATLAB & Simulink for autonomous robot navigation*
+*Built with MATLAB/Simulink for autonomous robot navigation*
